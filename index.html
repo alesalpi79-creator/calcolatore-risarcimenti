@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calcolatore Sinistri Pro</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a73e8">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero logo-centered premium-mockup">
+      <div class="hero-content" onclick="sbloccaProSegreto()">
+        <h1>Calcolatore Sinistri Pro</h1>
+        <p class="subtitle">Stima RCA, INAIL e polizza privata con report finale professionale.</p>
+      </div>
+      <div class="hero-box">
+        <div class="hero-label">Punti combinati</div>
+        <div class="hero-value" id="headerPunti">0%</div>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="panel">
+        <h2>1. Lesioni e gravità</h2>
+
+        <div class="search-pro-box">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <label style="font-size: 13px; color: var(--muted); font-weight:bold;">Ricerca Istantanea</label>
+            <span class="pro-badge" style="font-size:10px; padding:2px 6px; margin:0;">PRO</span>
+          </div>
+          <input type="text" id="cercaLesioneInput" placeholder="Digita es. 'Femore' o 'Rene' 🔍" onfocus="checkRicercaPro()" oninput="eseguiRicerca(this.value)" autocomplete="off">
+          <div id="ricercaSuggerimenti" class="suggestions-box"></div>
+        </div>
+
+        <div class="grid three">
+          <label>
+            <span>Categoria</span>
+            <select id="categoria" onchange="aggiornaVoci()"></select>
+          </label>
+
+          <label>
+            <span>Voce</span>
+            <select id="voce" onchange="aggiornaGravita()"></select>
+          </label>
+
+          <label>
+            <span>Gravità</span>
+            <select id="gravita"></select>
+          </label>
+        </div>
+
+        <div class="actions-row top-gap">
+          <button class="primary" onclick="aggiungiLesione()">Aggiungi lesione</button>
+          <button class="ghost" onclick="azzeraLesioni()">Svuota lesioni</button>
+          <button class="secondary" onclick="nuovaPratica()">+ Nuova Pratica</button>
+        </div>
+        
+        <div class="actions-row" style="margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px;">
+          <button class="secondary" style="font-size: 13px; font-weight: normal; color: #64748b; background: transparent; border: 1px solid #cbd5e1;" onclick="salvaPratica()">💾 Salva Pratica (PRO)</button>
+          <button class="secondary" style="font-size: 13px; font-weight: normal; color: #64748b; background: transparent; border: 1px solid #cbd5e1;" onclick="document.getElementById('sezioneArchivio').scrollIntoView({behavior:'smooth'})">📂 Vai all'Archivio (PRO)</button>
+        </div>
+
+        <div class="result-strip">
+          <div>
+            <div class="mini-label">Punti invalidità combinati</div>
+            <div class="big-number"><span id="puntiInvalidita">0</span>%</div>
+          </div>
+          <div>
+            <div class="mini-label">Esito INAIL</div>
+            <div class="strip-value" id="outputInail">Nessun indennizzo</div>
+          </div>
+        </div>
+
+        <div class="list-card">
+          <div class="list-header">
+            <h3>Lesioni inserite</h3>
+          </div>
+          <div id="listaLesioni" class="lesioni-list empty">Nessuna lesione inserita.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>2. Stima INAIL</h2>
+        <div class="grid three">
+          <label>
+            <span>RAL del lavoratore (€)</span>
+            <input id="ralInail" type="number" min="0" placeholder="Es. 25000" oninput="aggiornaPunti();" inputmode="decimal">
+          </label>
+        </div>
+        <div class="result-card" id="risultatoInailCard">
+          <div class="mini-label">Stima Rendita / Indennizzo INAIL</div>
+          <div class="placeholder">Se l'evento è lavorativo e supera la franchigia di legge.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>3. Polizza privata</h2>
+        <div class="grid three">
+          <label>
+            <span>RAL (€)</span>
+            <input id="ral" type="number" min="0" placeholder="Es. 50000" oninput="calcolaPolizza(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label>
+            <span>Moltiplicatore</span>
+            <input id="moltiplicatore" type="number" min="0" step="0.1" placeholder="Es. 2" oninput="calcolaPolizza(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label>
+            <span>Franchigia punti (%)</span>
+            <input id="franchigiaPolizza" type="number" min="0" max="100" placeholder="Es. 3" oninput="calcolaPolizza(); generaRiepilogo();" inputmode="decimal">
+          </label>
+        </div>
+        <div class="result-card" id="risultatoPolizza">
+          <div class="mini-label">Stima polizza privata</div>
+          <div class="placeholder">Sblocca PRO per calcolare la polizza.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>4. RCA orientativa</h2>
+        <div class="grid three">
+          <label>
+            <span>Età</span>
+            <input id="etaRca" type="number" min="0" max="120" placeholder="Es. 35" oninput="aggiornaPunti();" inputmode="decimal">
+          </label>
+          <label>
+            <span>ITT (100%) GG</span>
+            <input id="itt" type="number" min="0" placeholder="Es. 30" oninput="calcolaRCA(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label>
+            <span>ITP (75%) GG</span>
+            <input id="itp75" type="number" min="0" placeholder="Es. 15" oninput="calcolaRCA(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label>
+            <span>ITP (50%) GG</span>
+            <input id="itp50" type="number" min="0" placeholder="Es. 20" oninput="calcolaRCA(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label>
+            <span>ITP (25%) GG</span>
+            <input id="itp25" type="number" min="0" placeholder="Es. 10" oninput="calcolaRCA(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label>
+            <span>Danno morale (%)</span>
+            <input id="dannoMorale" type="number" min="0" max="100" placeholder="Es. 20" oninput="calcolaRCA(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label>
+            <span>Personalizzazione (%)</span>
+            <input id="personalizzazioneRca" type="number" min="0" max="100" placeholder="Es. 10" oninput="calcolaRCA(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label>
+            <span>Spese mediche (€)</span>
+            <input id="speseMediche" type="number" min="0" placeholder="Es. 1500" oninput="calcolaRCA(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label>
+            <span>P. Patrimoniale Futura (€)</span>
+            <input id="perditaPatrimoniale" type="number" min="0" placeholder="Es. 10000" oninput="calcolaRCA(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label style="color: var(--primary); border: 1px solid #c9d9eb; padding: 8px; border-radius: 10px; background: #f0f7ff;">
+            <span>Indennità Turno (€/mese)</span>
+            <input id="indennitaTurni" type="number" min="0" placeholder="Es. 500" oninput="calcolaRCA(); generaRiepilogo();" inputmode="decimal">
+          </label>
+          <label style="color: var(--primary); border: 1px solid #c9d9eb; padding: 8px; border-radius: 10px; background: #f0f7ff;">
+            <span>Mesi Persi (Turni)</span>
+            <input id="mesiTurni" type="number" min="0" placeholder="Es. 3" oninput="calcolaRCA(); generaRiepilogo();" inputmode="decimal">
+          </label>
+        </div>
+        <div class="result-card" id="risultatoRca">
+          <div class="mini-label">Stima RCA</div>
+          <div class="placeholder">Inserisci i dati per il calcolo.</div>
+        </div>
+      </section>
+
+      <section class="panel" id="sezioneReport">
+        <h2>5. Report professionale</h2>
+        <div class="actions-row">
+          <button class="primary" onclick="generaRiepilogo()">Aggiorna report</button>
+          <button class="secondary" onclick="apriMenuSalvataggio()">Salva Report</button>
+          <button class="ghost" onclick="condividiReport()" style="color: #25d366;">
+            <span style="font-size: 1.2em; vertical-align: middle; margin-right: 4px;">📲</span> Condividi
+          </button>
+        </div>
+
+        <div class="summary-card professional-report" id="reportExport">
+          <div class="report-header">
+            <h3>Report di stima risarcitoria</h3>
+            <p class="report-subtitle">Elaborazione tecnico-orientativa per RCA, INAIL e polizza privata</p>
+          </div>
+          <div class="report-meta">
+            <div><strong>Data:</strong> <span id="reportData">--</span></div>
+            <div><strong>Punti:</strong> <span id="reportPunti">--</span></div>
+            <div><strong>Età:</strong> <span id="reportEta">--</span></div>
+            <div><strong>ITT:</strong> <span id="reportItt">--</span></div>
+          </div>
+          <div class="report-section no-break">
+            <h4>Quadro lesivo</h4>
+            <div id="reportLesioni"><p>Nessuna lesione inserita.</p></div>
+          </div>
+          <div class="report-section no-break">
+            <h4>Dettaglio economico</h4>
+            <div class="report-table">
+              <div class="report-row report-head"><div>Voce</div><div>Importo</div></div>
+              <div class="report-row"><div>INAIL (Stima)</div><div id="reportInail">€ 0</div></div>
+              <div class="report-row"><div>Polizza privata (Stima)</div><div id="reportPolizza">€ 0</div></div>
+              <div class="report-row" style="font-size: 0.9em; border-bottom: none; padding: 4px 0;"><div>- Danno biologico</div><div id="reportBiologico">€ 0</div></div>
+              <div class="report-row" style="font-size: 0.9em; border-bottom: none; padding: 4px 0;"><div>- Danno temporaneo</div><div id="reportTemporanea">€ 0</div></div>
+              <div class="report-row" style="font-size: 0.9em; border-bottom: none; padding: 4px 0;"><div>- Danno morale</div><div id="reportMorale">€ 0</div></div>
+              <div class="report-row" style="font-size: 0.9em; border-bottom: none; padding: 4px 0;"><div>- Personalizzazione</div><div id="reportPersonalizzazione">€ 0</div></div>
+              <div class="report-row" style="font-size: 0.9em; border-bottom: none; padding: 4px 0;"><div>- Spese mediche</div><div id="reportSpeseMediche">€ 0</div></div>
+              <div class="report-row" style="font-size: 0.9em; border-bottom: none; padding: 4px 0;"><div>- P. patrimoniale</div><div id="reportPerditaPatrimoniale">€ 0</div></div>
+              <div class="report-row" style="font-size: 0.9em; padding: 4px 0; color: var(--primary); font-weight: bold;"><div>- Perdita Turni</div><div id="reportPerditaTurni">€ 0</div></div>
+              <div class="report-row" style="background: #f8fafc; font-size: 0.85em;"><div>Stima RCA Range</div><div id="reportRangeRca">€ 0 / € 0</div></div>
+              <div class="report-row total"><div>Totale medio</div><div id="reportTotale">€ 0</div></div>
+            </div>
+          </div>
+          <div class="report-section no-break">
+            <h4>Grafico Riepilogativo</h4>
+            <div style="max-height: 250px; width: 100%; display: flex; justify-content: center; padding: 10px 0;"><canvas id="reportChart"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="sezioneArchivio">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h2 style="margin:0;">6. Archivio Pratiche (PRO)</h2>
+          <button class="ghost" onclick="aggiornaArchivioLista()" style="font-size:12px;">Aggiorna 🔄</button>
+        </div>
+        <div class="search-pro-box" style="margin-bottom:15px; background:#f1f5f9;">
+          <input type="text" id="cercaArchivioInput" placeholder="Cerca nell'archivio..." oninput="filtraArchivio(this.value)">
+        </div>
+        <div id="contenitoreArchivio" class="archivio-grid"><div class="placeholder">Caricamento elenco pratiche...</div></div>
+      </section>
+    </main>
+
+    <footer style="text-align:center; padding: 20px 0; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 20px;">
+      <p>Sinistri Pro &copy; 2026 - <a href="#" onclick="mostraDisclaimer()" style="color: var(--primary); text-decoration: none; font-weight: bold;">Note Legali & Privacy</a></p>
+      <p style="margin-top: 5px; opacity: 0.7;">Tutti i calcoli rimangono salvati localmente sul dispositivo.</p>
+    </footer>
+  </div>
+
+  <!-- MODAL FREEMIUM PRO -->
+  <div class="modal-overlay" id="proModal">
+    <div class="modal-content">
+      <div class="pro-badge">PRO</div>
+      <h2>Funzione Premium</h2>
+      <p id="proMessage">Sblocca il pacchetto Premium per accedere a questa funzione esclusiva.</p>
+      <div class="actions-row" style="justify-content: center; margin-top: 20px;">
+        <button class="primary" id="buyProBtn" onclick="acquistaProReal()">Sblocca Versione PRO</button>
+        <button class="ghost" onclick="chiudiProModal()">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTION SHEET SALVATAGGIO -->
+  <div class="action-sheet-overlay" id="saveActionSheet" onclick="chiudiMenuSalvataggio(event)">
+    <div class="action-sheet">
+      <div class="sheet-handle"></div>
+      <h3>Salva Report</h3>
+      <div class="sheet-buttons">
+        <button class="sheet-btn" onclick="salvaPratica()"><strong>Archivio Applicazione</strong></button>
+        <button class="sheet-btn" onclick="salvaPdf()"><strong>Salva PDF</strong></button>
+      </div>
+      <button class="ghost full-width" style="margin-top: 15px;" onclick="chiudiMenuSalvataggio()">Annulla</button>
+    </div>
+  </div>
+
+  <!-- MODAL DISCLAIMER & PRIVACY -->
+  <div class="modal-overlay" id="legalModal" style="z-index: 5000;">
+    <div class="modal-content" style="max-width: 550px; text-align: left; padding: 24px;">
+      <h2 style="color: var(--primary); margin-bottom: 15px;">Note Legali & Disclaimer</h2>
+      <div style="font-size: 14px; line-height: 1.6; color: var(--text); max-height: 350px; overflow-y: auto;">
+        <p><strong>Disclaimer:</strong> Calcolatore Sinistri Pro è uno strumento di stima tecnico-informatica. I calcoli non costituiscono una valutazione medico-legale o una perizia professionale.</p>
+        <p style="margin-top: 10px;"><strong>Privacy:</strong> Nessun dato viene inviato a server esterni. Tutto è salvato in locale.</p>
+      </div>
+      <div class="actions-row" style="justify-content: center; margin-top: 25px;">
+        <button class="primary" onclick="accettaDisclaimer()">Ho capito e accetto</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker registrato:', reg.scope))
+          .catch(err => console.error('Errore Service Worker:', err));
+      });
+    }
+  </script>
+</body>
+</html>
