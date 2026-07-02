@@ -1,6 +1,6 @@
 {
   "name": "Calcolatore Risarcimenti",
-  "short_name": "Risarcimenti",
+  "short_name": "Calcolatore Risarcimenti",
   "description": "Stima RCA, INAIL e polizza privata con report finale professionale.",
   "start_url": "./index.html",
   "display": "standalone",
